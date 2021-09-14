@@ -1203,6 +1203,33 @@ define Device/sercomm_na502
 endef
 TARGET_DEVICES += sercomm_na502
 
+define Device/sercomm_s3
+  $(Device/dsa-migration)
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  UBINIZE_OPTS := -E 5
+  KERNEL_SIZE := 6144k
+  IMAGE_SIZE := 32768k
+  KERNEL_LOADADDR := 0x81001000
+  LZMA_TEXT_START := 0x82800000
+  SERCOMM_KERNEL_OFFSET := 0x400100
+  SERCOMM_ROOTFS_OFFSET := 0x1000000
+  KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | \
+    lzma | uImage lzma | sercomm-kernel
+  KERNEL_INITRAMFS := kernel-bin | append-dtb | lzma | loader-kernel | \
+    lzma | uImage lzma
+  LOADER_TYPE := bin
+  IMAGES += kernel.bin rootfs.bin
+  IMAGE/kernel.bin := append-kernel
+  IMAGE/rootfs.bin := append-ubi | check-size
+  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+  DEVICE_VENDOR := Sercomm
+  DEVICE_MODEL := S3
+  DEVICE_PACKAGES := kmod-mt7603 kmod-mt7615e kmod-mt7615-firmware kmod-usb3 \
+    uboot-envtools
+endef
+TARGET_DEVICES += sercomm_s3
+
 define Device/storylink_sap-g3200u3
   $(Device/dsa-migration)
   IMAGE_SIZE := 7872k
