@@ -3,6 +3,7 @@
 #
 
 include ./common-tp-link.mk
+include ./common-sercomm.mk
 
 DEFAULT_SOC := mt7621
 
