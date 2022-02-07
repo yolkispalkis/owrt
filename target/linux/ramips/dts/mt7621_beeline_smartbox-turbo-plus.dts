@@ -60,13 +60,13 @@
 			scpart-id = <2>;
 			read-only;
 
-			compatible = "nvmem-cells";
-			#address-cells = <1>;
-			#size-cells = <1>;
+			// compatible = "nvmem-cells";
+			// #address-cells = <1>;
+			// #size-cells = <1>;
 
-			macaddr_factory_21000: macaddr@21000 {
-				reg = <0x21000 0x6>;
-			};
+			// macaddr_factory_21000: macaddr@21000 {
+			// 	reg = <0x21000 0x6>;
+			// };
 		};
 
 		partition@300000 {
@@ -121,14 +121,16 @@
 };
 
 &gmac0 {
-	nvmem-cells = <&macaddr_factory_21000>;
-	nvmem-cell-names = "mac-address";
+	// nvmem-cells = <&macaddr_factory_21000>;
+	// nvmem-cell-names = "mac-address";
+	mtd-mac-address = <&factory 0x21000>;
 };
 
 &wan {
-	nvmem-cells = <&macaddr_factory_21000>;
-	nvmem-cell-names = "mac-address";
-	mac-address-increment = <1>;
+	// nvmem-cells = <&macaddr_factory_21000>;
+	// nvmem-cell-names = "mac-address";
+	mtd-mac-address = <&factory 0x21000>;
+	mtd-mac-address-increment = <1>;
 };
 
 &wlan_2g {
