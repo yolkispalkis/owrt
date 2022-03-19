@@ -75,24 +75,27 @@
 	status = "okay";
 
 	partitions {
-		compatible = "fixed-partitions";
+		compatible = "sercomm,sc-partitions", "fixed-partitions";
 		#address-cells = <1>;
 		#size-cells = <1>;
 
 		partition@0 {
 			label = "u-boot";
 			reg = <0x0 0x100000>;
+			scpart-id = <0>;
 			read-only;
 		};
 
 		partition@100000 {
 			label = "dynamic partition map";
 			reg = <0x100000 0x100000>;
+			scpart-id = <1>;
 		};
 
 		factory: partition@200000 {
 			label = "Factory";
 			reg = <0x200000 0x100000>;
+			scpart-id = <2>;
 			read-only;
 
 			compatible = "nvmem-cells";
@@ -107,51 +110,60 @@
 		partition@300000 {
 			label = "Boot Flag";
 			reg = <0x300000 0x100000>;
+			scpart-id = <3>;
 		};
 
 		partition@400000 {
 			label = "kernel";
 			reg = <0x400000 0x600000>;
+			scpart-id = <4>;
 		};
 
 		partition@a00000 {
 			label = "Kernel 2";
 			reg = <0xa00000 0x600000>;
+			scpart-id = <5>;
 			read-only;
 		};
 
 		ubiconcat0: partition@1000000 {
 			label = "ubiconcat0";
 			reg = <0x1000000 0x1800000>;
+			scpart-id = <6>;
 		};
 
 		partition@2800000 {
 			label = "File System 2";
 			reg = <0x2800000 0x1800000>;
+			scpart-id = <7>;
 			read-only;
 		};
 
 		partition@4000000 {
 			label = "Configuration/log";
 			reg = <0x4000000 0x800000>;
+			scpart-id = <8>;
 			read-only;
 		};
 
 		partition@4800000 {
 			label = "application tmp buffer (Ftool)";
 			reg = <0x4800000 0xc00000>;
+			scpart-id = <9>;
 			read-only;
 		};
 
 		ubiconcat1: partition@5400000 {
 			label = "ubiconcat1";
 			reg = <0x5400000 0x2800000>;
+			scpart-id = <10>;
 		};
 
 		partition@7c00000 {
 			label = "bad block reserved";
 			reg = <0x7c00000 0x380000>;
 			read-only;
+			scpart-id = <11>;
 		};
 	};
 };
