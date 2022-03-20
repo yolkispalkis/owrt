@@ -9,63 +9,94 @@ DEFAULT_SOC := mt7621
 KERNEL_DTB += -d21
 DEVICE_VARS += ELECOM_HWNAME LINKSYS_HWNAME
 DEVICE_VARS += SERCOMM_KERNEL_OFFSET SERCOMM_ROOTFS_OFFSET
+DEVICE_VARS += SERCOMM_0x04str SERCOMM_0x10str
 
-define Build/beeline-giga-factory
-	$(eval kernel_tag=$(word 1,$(1)))
-	$(eval rootfs_tag=$(word 2,$(1)))
+define Build/sercomm-tag-factory-img-giga
+  $(eval kernel1_offset=$(word 1,$(1)))
+  $(eval rootfs1_offset=$(word 2,$(1)))
+  $(eval kernel2_offset=$(word 3,$(1)))
+  $(eval rootfs2_offset=$(word 4,$(1)))
+    $(TOPDIR)/scripts/sercomm.sh \
+    -a \
+    -k $(IMAGE_KERNEL) \
+    -r $@ \
+    -l '$(kernel1_offset)' \
+    -s '$(rootfs1_offset)' \
+    -o $@.hdrkrn1
+  cat $@.hdrkrn1 $(IMAGE_KERNEL) > $@.krn1
+	$(TOPDIR)/scripts/sercomm-partition-tag.py \
+		--input-file $@.krn1 \
+		--output-file $@.kernel \
+		--part-name kernel \
+		--part-version $(SERCOMM_SWVER)
 	$(TOPDIR)/scripts/sercomm-partition-tag.py \
 		--input-file $@ \
-		--output-file $@.tmp \
-		--part-name $(rootfs_tag) \
+		--output-file $@.rootfs \
+		--part-name rootfs \
 		--part-version $(SERCOMM_SWVER)
-	mv $@.tmp $@
-	dd if=$(IMAGE_KERNEL) >> $@.kernel 2>/dev/null
+  $(TOPDIR)/scripts/sercomm.sh \
+    -a \
+    -k $(IMAGE_KERNEL) \
+    -r $@ \
+    -l '$(kernel2_offset)' \
+    -s '$(rootfs2_offset)' \
+    -o $@.hdrkrn2
+  cat $@.hdrkrn2 $(IMAGE_KERNEL) > $@.krn2
 	$(TOPDIR)/scripts/sercomm-partition-tag.py \
-		--input-file $@.kernel \
-		--output-file $@.kernel.tmp \
-		--part-name $(kernel_tag) \
+		--input-file $@.krn2 \
+		--output-file $@.kernel2 \
+		--part-name kernel2 \
 		--part-version $(SERCOMM_SWVER)
-	mv $@.kernel.tmp $@.kernel
-	dd if=$@ >> $@.kernel 2>/dev/null
-	mv $@.kernel $@
-	gzip -f -9n -c $@ > $@.gz
-	mv $@.gz $@
-	$(TOPDIR)/scripts/sercomm-pid.py \
-		--hw-version $(SERCOMM_HWVER) \
-		--hw-id $(SERCOMM_HWID) \
-		--sw-version $(SERCOMM_SWVER) \
-		--pid-file $@.pid \
-		--extra-padding-size 0x10
-	printf '\x0a' | dd of=$@.pid bs=1 seek=$$((0x70)) conv=notrunc \
-		2>/dev/null
+	$(TOPDIR)/scripts/sercomm-partition-tag.py \
+		--input-file $@ \
+		--output-file $@.rootfs2 \
+		--part-name rootfs2 \
+		--part-version $(SERCOMM_SWVER)
+  cat $@.kernel $@.rootfs $@.kernel2 $@.rootfs2 > $@.frst
+	gzip -f -9n -c $@.frst > $@.gz
+
+  $(TOPDIR)/scripts/sercomm.sh \
+    -b \
+    -g $(SERCOMM_HWVER) \
+    -i $(SERCOMM_HWID) \
+    -j $(SERCOMM_SWVER) \
+    -m $(SERCOMM_0x04str) \
+    -o $@.pid
+  dd if=/dev/zero bs=1 count=16 seek=$$((0x70)) of=$@.pid conv=notrunc
+  printf '\x0a' | dd of=$@.pid bs=1 seek=$$((0x70)) conv=notrunc
 	$(TOPDIR)/scripts/sercomm-payload.py \
-		--input-file $@ \
-		--output-file $@.tmp \
+		--input-file $@.gz \
+		--output-file $@.scnd \
 		--pid "$$(cat $@.pid | od -t x1 -An -v | tr -d '\n')"
-	mv $@.tmp $@
-	rm $@.pid
+
 	$(TOPDIR)/scripts/sercomm-crypto.py \
-		--input-file $@ \
+		--input-file $@.scnd \
 		--key-file $@.key \
-		--output-file $@.ser \
+		--output-file $@.hdrenc \
 		--version $(SERCOMM_SWVER)
 	$(STAGING_DIR_HOST)/bin/openssl enc -md md5 -aes-256-cbc \
-		-in $@ -out $@.enc \
+		-in $@.scnd -out $@.enc \
 		-K `cat $@.key` \
 		-iv 00000000000000000000000000000000
-	dd if=$@.enc >> $@.ser 2>/dev/null
-	mv $@.ser $@
-	rm -f $@.enc $@.key
+  cat $@.hdrenc $@.enc > $@.new
+	mv $@.new $@
+	rm -f $@.hdrkrn1 $@.krn1 $@.kernel $@.rootfs $@.hdrkrn2 $@.krn2 \
+    $@.kernel2 $@.rootfs2 $@.frst $@.gz $@.pid $@.scnd \
+    $@.key $@.hdrenc $@.enc
 endef
 
-define Build/beeline-giga-kernel
-	$(TOPDIR)/scripts/sercomm-kernel-header.py \
-		--kernel-image $@ \
-		--kernel-offset $(SERCOMM_KERNEL_OFFSET) \
-		--rootfs-offset $(SERCOMM_ROOTFS_OFFSET) \
-		--output-header $@.hdr
-	dd if=$@ >> $@.hdr 2>/dev/null
-	mv $@.hdr $@
+define Build/sercomm-tag-header-kernel
+  $(eval kernel_offset=$(word 1,$(1)))
+  $(eval rootfs_offset=$(word 2,$(1)))
+  $(TOPDIR)/scripts/sercomm.sh \
+    -a \
+    -k $(IMAGE_KERNEL) \
+    -r $@ \
+    -l '$(kernel_offset)' \
+    -s '$(rootfs_offset)' \
+    -o $@.hdrkrn
+  cat $@.hdrkrn $(IMAGE_KERNEL) > $@.new
+  mv $@.new $@ ; rm -f $@.hdrkrn
 endef
 
 define Build/beeline-trx
@@ -311,27 +342,31 @@ TARGET_DEVICES += beeline_smartbox-flash
 define Device/beeline_smartbox-giga
   $(Device/dsa-migration)
   BLOCKSIZE := 128k
-  PAGESIZE := 2048
-  IMAGE_SIZE := 24576k
-  KERNEL_SIZE := 6144k
+  PAGESIZE := 2KiB
+  KERNEL_SIZE := 6m
+  IMAGE_SIZE := 24m
   UBINIZE_OPTS := -E 5
   LOADER_TYPE := bin
   KERNEL_LOADADDR := 0x81001000
   LZMA_TEXT_START := 0x82800000
-  KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | lzma | \
-	uImage lzma | beeline-giga-kernel
+  KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | \
+    lzma | uImage lzma
   KERNEL_INITRAMFS := kernel-bin | append-dtb | lzma | loader-kernel | \
-	lzma | uImage lzma
-  IMAGES += factory.img
-  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
-  IMAGE/factory.img := append-ubi | beeline-giga-factory kernel rootfs
-  SERCOMM_KERNEL_OFFSET := 0x400100
-  SERCOMM_ROOTFS_OFFSET := 0x1000000
+    lzma | uImage lzma
+  IMAGES += kernel.bin rootfs.bin factory.img
+  IMAGE/kernel.bin := append-ubi | sercomm-tag-header-kernel 0x400100 0x1000000
+  IMAGE/rootfs.bin := append-ubi | check-size
+  IMAGE/factory.img := append-ubi | sercomm-tag-factory-img-giga 0x400100 0x1000000 0xa00100 0x2800000
+  IMAGE/sysupgrade.bin := append-ubi | sercomm-tag-header-kernel 0x400100 0x1000000 | sysupgrade-tar kernel=$$$$@ | append-metadata
   SERCOMM_HWID := DBE
-  SERCOMM_HWVER := 10100
-  SERCOMM_SWVER := 1001
-  DEVICE_VENDOR := Beeline
-  DEVICE_MODEL := SmartBox GIGA
+  SERCOMM_HWVER := 0001
+  SERCOMM_0x04str := 0100
+  SERCOMM_SWVER := 2002
+  DEVICE_VENDOR := Sercomm
+  DEVICE_MODEL := S2
+  DEVICE_VARIANT := DBE
+  DEVICE_ALT0_VENDOR := Beeline
+  DEVICE_ALT0_MODEL := SmartBox GIGA
   DEVICE_PACKAGES := kmod-mt7603 kmod-mt7615e kmod-mt7663-firmware-ap \
 	kmod-usb3 uboot-envtools
 endef
