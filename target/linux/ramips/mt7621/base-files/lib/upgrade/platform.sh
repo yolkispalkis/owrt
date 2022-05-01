@@ -57,6 +57,11 @@ platform_do_upgrade() {
 	beeline,smartbox-giga|\
 	beeline,smartbox-pro|\
 	wifire,s1500-nbn|\
+	beeline,smartbox-turbo-plus|\
+	beeline,smartbox-turbo|\
+	sercomm,rt-fe-1|\
+	sercomm,rt-sf-1|\
+	sercomm,s3|\
 	dlink,dir-1960-a1|\
 	dlink,dir-2640-a1|\
 	dlink,dir-2660-a1|\
