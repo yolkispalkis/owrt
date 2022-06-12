@@ -251,6 +251,8 @@ define Device/beeline_smartbox-flash
   IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
   DEVICE_PACKAGES := kmod-usb3 kmod-mt7615e kmod-mt7615-firmware \
 	uboot-envtools
+  DEVICE_ALT0_VENDOR := Arcadyan
+  DEVICE_ALT0_MODEL := WG443223
 endef
 TARGET_DEVICES += beeline_smartbox-flash
 
@@ -1207,6 +1209,7 @@ define Device/mts_wg430223
   IMAGE/factory.trx := append-kernel | append-ubi | check-size
   IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
   DEVICE_PACKAGES := kmod-mt7615e kmod-mt7615-firmware uboot-envtools
+  DEVICE_ALT0_VENDOR := Arcadyan
 endef
 TARGET_DEVICES += mts_wg430223
 
