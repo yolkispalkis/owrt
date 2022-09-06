@@ -2,6 +2,7 @@
 # MT7620A Profiles
 #
 
+include ./common-sercomm.mk
 include ./common-tp-link.mk
 
 DEVICE_VARS += DLINK_ROM_ID DLINK_FAMILY_MEMBER DLINK_FIRMWARE_SIZE DLINK_IMAGE_OFFSET
@@ -1076,6 +1077,26 @@ define Device/sercomm_na930
   SUPPORTED_DEVICES += na930
 endef
 TARGET_DEVICES += sercomm_na930
+
+define Device/sercomm_s1010_cpj
+  $(Device/sercomm_s1010)
+  SOC := mt7620a
+  IMAGE_SIZE := 7744k
+  DEVICE_VENDOR := Sercomm
+  DEVICE_MODEL := S1010
+  DEVICE_VARIANT := CPJ
+  SERCOMM_HWID := $$(DEVICE_VARIANT)
+  SERCOMM_HWVER := 10000
+  SERCOMM_SWVER := 2118
+  DEVICE_ALT0_VENDOR := Rostelecom
+  DEVICE_ALT0_MODEL := S1010.RT
+  DEVICE_ALT0_VARIANT := CPJ00
+  DEVICE_ALT1_VENDOR := Rostelecom
+  DEVICE_ALT1_MODEL := RT-FL-1
+  DEVICE_ALT1_VARIANT := CPJ10
+  DEVICE_PACKAGES := kmod-mt76x2
+endef
+TARGET_DEVICES += sercomm_s1010_cpj
 
 define Device/sitecom_wlr-4100-v1-002
   SOC := mt7620a

@@ -1,0 +1,288 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+#include "mt7620a.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
+
+/ {
+	compatible = "sercomm,s1010_cpj", "ralink,mt7620a-soc";
+	model = "Sercomm S1010 CPJ";
+
+	aliases {
+		led-boot = &led_sys_n;
+		led-failsafe = &led_sys_p;
+		led-running = &led_wan;
+		led-upgrade = &led_lan1;
+		label-mac-device = &ethernet;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+        // ToDo LED: узнать
+        // Уровень активации
+        // Цвета
+        // Смещение GPIO
+		// Gpio0 0-23
+		// gpio1 24-39 = 0-15
+		// gpio2 40-71 = 0-31
+		// gpio3 72 = 0
+        // https://openwrt.org/docs/techref/hardware/port.gpio#software
+		// DataSheet MT7620 
+		// https://w.electrodragon.com/w/images/3/34/MT7620_Datasheet.pdf
+
+		led_sys_n: led-0 { // LED_SYS_N - GPIO 9 [UARTF-CTS_N]
+			color = <LED_COLOR_ID_WHITE>;
+			function = LED_FUNCTION_STATUS;
+			gpios = <&gpio0 9 GPIO_ACTIVE_LOW>;
+		};
+
+		led_sys_p: led-1 { // LED_SYS_P - GPIO 10 [UARTF-RXD]
+			color = <LED_COLOR_ID_RED>;
+			function = LED_FUNCTION_PANIC;
+			gpios = <&gpio0 10 GPIO_ACTIVE_LOW>;
+			panic-indicator;
+		};
+
+		led_wan: led-2 { // LED_WAN - GPIO 40 [SW_PHY_LED/JTAG-EPHY_LED0_N_JTDO]
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_WAN;
+			gpios = <&gpio2 0 GPIO_ACTIVE_LOW>;
+		};
+
+		led_lan1: led-3 { // LED_LAN1 - GPIO 41 [SW_PHY_LED/JTAG-EPHY_LED1_N_JTDI]
+			color = <LED_COLOR_ID_BLUE>;
+			function = LED_FUNCTION_LAN;
+			gpios = <&gpio2 1 GPIO_ACTIVE_LOW>;
+		};
+
+		led-4 { // LED_LAN2 - GPIO 42 [SW_PHY_LED/JTAG-EPHY_LED2_N_JTMS]
+			color = <LED_COLOR_ID_AMBER>;
+			function = LED_FUNCTION_LAN;
+			gpios = <&gpio2 2 GPIO_ACTIVE_LOW>;
+		};
+
+		led-5 { // LED_LAN3 - GPIO 43 [SW_PHY_LED/JTAG-EPHY_LED3_N_JTCLK]
+			color = <LED_COLOR_ID_VIOLET>;
+			function = LED_FUNCTION_LAN;
+			gpios = <&gpio2 3 GPIO_ACTIVE_LOW>;
+		};
+
+		led-6 { // LED_LAN4 - GPIO 44 [SW_PHY_LED/JTAG-EPHY_LED4_N_JTRST_N]
+			color = <LED_COLOR_ID_YELLOW>;
+			function = LED_FUNCTION_LAN;
+			gpios = <&gpio2 4 GPIO_ACTIVE_LOW>;
+		};
+
+		/* led-7 { // LED_WIFI_2G - GPIO ?
+			color = <LED_COLOR_ID_WHITE>;
+			function = LED_FUNCTION_WLAN;
+			gpios = <&gpio? ? GPIO_ACTIVE_LOW>;
+		};
+
+		led-8 { // LED_WIFI_5G - GPIO ?
+			color = <LED_COLOR_ID_WHITE>;
+			function = LED_FUNCTION_WLAN;
+			gpios = <&gpio? ? GPIO_ACTIVE_LOW>;
+		}; */
+	};
+
+	keys {
+		compatible = "gpio-keys";
+
+		reset { // RESET_BUTTON - GPIO 30 [RGMII1-GE1_RXD0]
+			label = "Reset Button";
+			gpios = <&gpio1 6 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_RESTART>;
+		}; // Если будет постоянно reboot значит поставить HIGH
+
+		wps { // WPS_BUTTON - GPIO 31 [RGMII1-GE1_RXD1]
+			label = "WPS Button";
+			gpios = <&gpio1 7 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_WPS_BUTTON>;
+		};
+	};
+};
+
+&ethernet {
+	nvmem-cells = <&macaddr_nvram_0>;
+	nvmem-cell-names = "mac-address";
+	// TODO Eth: узнать отличия MAC
+	// LAN = nvram = label
+	// WAN = ?
+	// 2.4 GHz = ?LAN+2
+	// 5 GHz = ?
+};
+
+&gpio0 {
+	status = "okay";
+};
+
+&gpio1 {
+	status = "okay";
+};
+
+&gpio2 {
+	status = "okay";
+};
+
+&pcie {
+	status = "okay";
+};
+
+&pcie0 { // MT7612E
+	wifi@0,0 {
+		compatible = "mediatek,mt76";
+		reg = <0x0000 0 0 0 0>;
+		ieee80211-freq-limit = <5000000 6000000>;
+		mediatek,mtd-eeprom = <&factory 0x8000>;
+
+		nvmem-cells = <&macaddr_nvram_0>;
+		nvmem-cell-names = "mac-address";
+		mac-address-increment = <2>;
+	};
+};
+
+&spi0 {
+	status = "okay";
+
+	flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <50000000>; // ??
+		// m25p,fast-read; ??
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "Bootloader";
+				reg = <0x0 0x30000>;
+				read-only;
+				// Проверить куда сохраняет saveenv
+				// U-boot Env
+			};
+
+			partition@30000 {
+				label = "ftd_and_bootflag";
+				reg = <0x30000 0x20000>;
+				// 0xFFFF
+				// 0x18000 (0x8) = BootFlag (Sercomm0)
+				// 0x19000 (0x8) = CRC? FTD?
+				// 0x0000
+			};
+
+			factory: partition@50000 {
+				label = "Factory";
+				reg = <0x50000 0x10000>;
+				read-only;
+				// 0x0 (0x200) - cal 7605
+				// 0x8000 (0x200) - cal 7601
+			};
+
+			partition@60000 {
+				label = "SC Nvram(permanent data)";
+				reg = <0x60000 0x10000>;
+				read-only;
+
+				compatible = "nvmem-cells";
+				#address-cells = <1>;
+				#size-cells = <1>;
+
+				macaddr_nvram_0: macaddr@0 {
+					reg = <0x0 0x6>;
+				};
+				// 0x0 (0x6) - MAC
+				// 0x10 (0x1c) - CSN
+				// 0x60 (0x1c) - PCBASN
+				// 0x80 (0x1c) - SSID
+				// 0xA0 (0x8) - PASS?
+				// 0xE0 (0x8) - PASS?
+			};
+
+			partition@70000 {
+				compatible = "denx,uimage";
+				label = "firmware";
+				reg = <0x70000 0x790000>;
+
+				compatible = "fixed-partitions";
+				#address-cells = <1>;
+				#size-cells = <1>;
+
+				partition@0 {
+					label = "Kernel";
+					reg = <0x0 0x200000>;
+					// reg = <0x70000 0x200000>;
+					// Оставлено, на всякий.
+					// К примеру править сток из initramfs
+				};
+
+				partition@200000 {
+					label = "RootFS";
+					reg = <0x200000 0x590000>;
+					// reg = <0x270000 0x590000>;
+				};
+			};
+
+			partition@1000000 {
+				label = "Dummy(not used)";
+				reg = <0x1000000 0x0>;
+				read-only;
+			};
+
+			partition@800000 {
+				label = "Kernel2";
+				reg = <0x800000 0x200000>;
+				read-only;
+			};
+
+			partition@a00000 {
+				label = "RootFS2";
+				reg = <0xa00000 0x590000>;
+				read-only;
+			};
+
+			partition@f90000 { // concat
+				label = "MAC IP";
+				reg = <0xf90000 0x10000>;
+			};
+
+			partition@f90000 { // concat
+				label = "Critical Log";
+				reg = <0xfa0000 0x10000>;
+			};
+
+			partition@f90000 {
+				label = "Critical Log Bak";
+				reg = <0xfb0000 0x10000>;
+				read-only;
+			};
+
+			partition@f90000 { // concat
+				label = "Xml Config";
+				reg = <0xfc0000 0x20000>;
+			};
+
+			partition@f90000 {
+				label = "Xml Config Bak";
+				reg = <0xfe0000 0x20000>;
+				read-only;
+			};
+		};
+	};
+};
+
+&state_default {
+	gpio {
+		groups = "uartf", "ephy", "rgmii1"; 
+		// проверить влияет ли rgmii1 на switch при запуске
+		function = "gpio";
+	};
+};
+
+&wmac {
+	ralink,mtd-eeprom = <&factory 0x0>;
+};
